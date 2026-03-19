@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Result | Hypertension Classifier</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 28px 16px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .outer {
+            width: 100%;
+            max-width: 860px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 2.75rem 2.5rem;
+            box-shadow: 0 24px 64px rgba(0,0,0,.28);
+            animation: rise .5s ease-out both;
+        }
+
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(26px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Step 1 */
+        .result-title {
+            color: #667eea;
+            font-size: 1.9rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: .75rem;
+        }
+
+        .model-label {
+            color: #6c757d;
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .model-label span {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .pred-value {
+            font-size: 4.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin: 1.5rem 0 .5rem;
+            text-shadow: 2px 3px 6px rgba(0,0,0,.12);
+        }
+
+        .pred-meaning {
+            color: #6c757d;
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+        }
+
+        .conf-badge {
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            color: #fff;
+            padding: .9rem 2.5rem;
+            border-radius: 50px;
+            font-size: 1.7rem;
+            font-weight: 700;
+            display: inline-block;
+            box-shadow: 0 10px 28px rgba(102,126,234,.38);
+            margin-bottom: 2rem;
+        }
+
+        /* Color themes per class */
+        .col-nt  { color: #28a745; }
+        .col-pt  { color: #e6a817; }
+        .col-ht1 { color: #fd7e14; }
+        .col-ht2 { color: #dc3545; }
+
+        .btn-main {
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            border: none;
+            padding: 13px 42px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 50px;
+            color: #fff;
+            cursor: pointer;
+            margin: .4rem;
+            box-shadow: 0 8px 24px rgba(102,126,234,.32);
+            transition: transform .25s, box-shadow .25s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-main:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 34px rgba(102,126,234,.42);
+            color: #fff;
+        }
+
+        .btn-grey {
+            background: #6c757d;
+            box-shadow: none;
+        }
+
+        .btn-grey:hover {
+            background: #5a6268;
+        }
+
+        /* Step 2 — options */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px,1fr));
+            gap: 1.5rem;
+            margin: 1.75rem 0;
+        }
+
+        .opt-card {
+            background: #f8f9fa;
+            border: 3px solid transparent;
+            border-radius: 16px;
+            padding: 1.75rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all .25s;
+        }
+
+        .opt-card:hover {
+            transform: translateY(-5px);
+            border-color: #667eea;
+            box-shadow: 0 10px 28px rgba(102,126,234,.2);
+        }
+
+        .opt-icon {
+            font-size: 2.8rem;
+            margin-bottom: .75rem;
+        }
+
+        .opt-title {
+            color: #667eea;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: .4rem;
+        }
+
+        .opt-desc {
+            color: #6c757d;
+            font-size: .88rem;
+        }
+
+        /* Charts */
+        .chart-wrap {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .chart-title {
+            color: #667eea;
+            font-size: 1.4rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1.25rem;
+        }
+
+        /* Rankings */
+        .rankings {
+            margin-top: 1.75rem;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .rank-hdr {
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            color: #fff;
+            padding: .85rem 1rem;
+            font-weight: 700;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .rank-row {
+            display: flex;
+            align-items: center;
+            padding: .9rem 1rem;
+            border-bottom: 1px solid #dee2e6;
+            background: #fff;
+        }
+
+        .rank-row:last-child {
+            border-bottom: none;
+        }
+
+        .rank-row.best {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+
+        .rank-row.selected {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+        }
+
+        .rank-name {
+            flex: 1;
+            font-weight: 700;
+            color: #343a40;
+        }
+
+        .rank-acc {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1.05rem;
+        }
+
+        .pill {
+            font-size: .72rem;
+            padding: .28rem .65rem;
+            border-radius: 20px;
+            margin-left: .5rem;
+            font-weight: 700;
+        }
+
+        .pill-best {
+            background: #28a745;
+            color: #fff;
+        }
+
+        .pill-sel {
+            background: #667eea;
+            color: #fff;
+        }
+
+        .back-btn {
+            background: #6c757d;
+            border: none;
+            padding: 11px 28px;
+            font-size: .98rem;
+            font-weight: 600;
+            border-radius: 50px;
+            color: #fff;
+            cursor: pointer;
+            margin-right: .6rem;
+            transition: all .2s;
+        }
+
+        .back-btn:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* Health info box */
+        .health-box {
+            margin-top: 1.75rem;
+            padding: 1.25rem 1.5rem;
+            border-radius: 14px;
+            font-size: .95rem;
+            line-height: 1.65;
+        }
+
+        .health-nt  { background: #d4edda; color: #155724; border-left: 5px solid #28a745; }
+        .health-pt  { background: #fff3cd; color: #856404; border-left: 5px solid #ffc107; }
+        .health-ht1 { background: #ffe5d0; color: #842029; border-left: 5px solid #fd7e14; }
+        .health-ht2 { background: #f8d7da; color: #842029; border-left: 5px solid #dc3545; }
+    </style>
+</head>
+<body>
+<div class="outer">
+
+    <!-- Hidden config holder (Jinja-safe) -->
+    <div id="page-config" data-prediction='{{ prediction_data_json | safe }}'></div>
+
+    <!-- STEP 1 -->
+    <div id="step1" class="card text-center">
+        <div class="result-title">🎯 Prediction Result</div>
+        <div class="model-label">Selected Model: <span id="s1ModelName">—</span></div>
+
+        <div class="pred-value" id="s1PredValue">—</div>
+        <div class="pred-meaning" id="s1PredMeaning">—</div>
+        <div class="conf-badge" id="s1ConfBadge">—% Confidence</div>
+
+        <div id="s1HealthBox" class="health-box" style="text-align:left;"></div>
+
+        <div style="margin-top:1.75rem;">
+            <button class="btn-main" onclick="showStep(2)">📊 View Detailed Analysis</button>
+            <button class="btn-main btn-grey" onclick="goHome()">🔄 New Prediction</button>
+            <a href="/visualize" class="btn-main btn-grey">📈 All Models Graph</a>
+        </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="step2" class="card hidden">
+        <div class="result-title">📊 Choose Analysis View</div>
+        <p style="color:#6c757d;text-align:center;font-size:1.05rem;margin-bottom:.5rem;">
+            Pick which view you'd like to explore
+        </p>
+
+        <div class="options-grid">
+            <div class="opt-card" onclick="showStep(3)">
+                <div class="opt-icon">🍩</div>
+                <div class="opt-title">Current Model<br>Confidence</div>
+                <div class="opt-desc">
+                    Doughnut chart showing confidence vs uncertainty for
+                    <span id="opt3ModelName">—</span>
+                </div>
+            </div>
+
+            <div class="opt-card" onclick="showStep(4)">
+                <div class="opt-icon">📈</div>
+                <div class="opt-title">All Models<br>Comparison</div>
+                <div class="opt-desc">Bar chart comparing CNN, XGBoost, SVM and KNN accuracy</div>
+            </div>
+        </div>
+
+        <div class="text-center" style="margin-top:1.5rem;">
+            <button class="back-btn" onclick="showStep(1)">← Back</button>
+        </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="step3" class="card hidden">
+        <div class="chart-title">🍩 <span id="s3ModelName">—</span> — Confidence Breakdown</div>
+        <div class="chart-wrap" style="max-width:420px;margin:0 auto;">
+            <canvas id="donutChart"></canvas>
+        </div>
+
+        <div class="text-center" style="margin-top:1.5rem;">
+            <button class="back-btn" onclick="showStep(2)">← Back</button>
+            <button class="btn-main btn-grey" onclick="goHome()">🔄 New Prediction</button>
+        </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div id="step4" class="card hidden">
+        <div class="chart-title">📈 All Models Accuracy Comparison</div>
+        <div class="chart-wrap">
+            <canvas id="barChart" height="200"></canvas>
+        </div>
+
+        <div class="rankings">
+            <div class="rank-hdr">🏆 Algorithm Rankings</div>
+            <div id="rankingsBody"></div>
+        </div>
+
+        <div class="text-center" style="margin-top:1.5rem;">
+            <button class="back-btn" onclick="showStep(2)">← Back</button>
+            <button class="btn-main btn-grey" onclick="goHome()">🔄 New Prediction</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const pageConfigEl = document.getElementById('page-config');
+
+let PD = null;
+try {
+    PD = JSON.parse(pageConfigEl.dataset.prediction || '{}');
+} catch (e) {
+    console.warn('Could not parse prediction data, using demo.', e);
+    PD = null;
+}
+
+const MODEL_ORDER = ['CNN', 'XGBoost', 'SVM', 'KNN'];
+
+const MODEL_COLORS = {
+    'CNN':     { bar: 'rgba(230,126,34,.85)',  border: 'rgb(230,126,34)' },
+    'XGBoost': { bar: 'rgba(56,161,105,.85)',  border: 'rgb(56,161,105)' },
+    'SVM':     { bar: 'rgba(118,75,162,.85)',  border: 'rgb(118,75,162)' },
+    'KNN':     { bar: 'rgba(102,126,234,.85)', border: 'rgb(102,126,234)' }
+};
+
+const RESULT_META = {
+    'nt': {
+        label: 'Normal',
+        color: '#28a745',
+        cls: 'col-nt',
+        advice: 'Your blood pressure appears normal. Keep up a healthy lifestyle!'
+    },
+    'pt': {
+        label: 'Pre-Hypertension',
+        color: '#e6a817',
+        cls: 'col-pt',
+        advice: 'Slightly elevated blood pressure. Consider diet and exercise adjustments.'
+    },
+    'ht1': {
+        label: 'Hypertension Stage 1',
+        color: '#fd7e14',
+        cls: 'col-ht1',
+        advice: 'Mild hypertension detected. Consult a healthcare professional.'
+    },
+    'ht2': {
+        label: 'Hypertension Stage 2',
+        color: '#dc3545',
+        cls: 'col-ht2',
+        advice: 'Severe hypertension detected. Please seek medical attention promptly.'
+    }
+};
+
+function normaliseModelName(raw) {
+    const value = String(raw || '').toLowerCase().replace(/[\s\-_]/g, '');
+
+    const map = {
+        'avgpoolvgg16': 'CNN',
+        'vgg16': 'CNN',
+        'resnet50': 'CNN',
+        'alexnet': 'CNN',
+        'cnn': 'CNN',
+        'xgboost': 'XGBoost',
+        'xgb': 'XGBoost',
+        'svm': 'SVM',
+        'knn': 'KNN'
+    };
+
+    return map[value] || raw || 'CNN';
+}
+
+function sanitise(data) {
+    if (!data || typeof data !== 'object') {
+        return null;
+    }
+
+    const clean = {
+        model: normaliseModelName(data.model),
+        result: String(data.result || 'nt').toLowerCase(),
+        confidence: parseFloat(data.confidence) || 0,
+        allModels: {}
+    };
+
+    const src = data.allModels || {};
+
+    MODEL_ORDER.forEach(function (name) {
+        let value = src[name];
+        if (value == null) {
+            value = src[name.toLowerCase()];
+        }
+        clean.allModels[name] = parseFloat(value) || 0;
+    });
+
+    return clean;
+}
+
+PD = sanitise(PD);
+
+if (!PD) {
+    PD = {
+        model: 'CNN',
+        result: 'nt',
+        confidence: 0.92,
+        allModels: {
+            'CNN': 0.92,
+            'XGBoost': 1.00,
+            'SVM': 0.77,
+            'KNN': 0.61
+        }
+    };
+}
+
+(function renderStep1() {
+    const rv = PD.result;
+    const meta = RESULT_META[rv] || RESULT_META['nt'];
+
+    document.getElementById('s1ModelName').textContent = PD.model;
+    document.getElementById('opt3ModelName').textContent = PD.model;
+    document.getElementById('s3ModelName').textContent = PD.model;
+
+    const pvEl = document.getElementById('s1PredValue');
+    pvEl.textContent = rv.toUpperCase();
+    pvEl.className = 'pred-value ' + meta.cls;
+
+    document.getElementById('s1PredMeaning').textContent = meta.label;
+    document.getElementById('s1ConfBadge').textContent = (PD.confidence * 100).toFixed(2) + '% Confidence';
+
+    const hb = document.getElementById('s1HealthBox');
+    hb.innerHTML = '💡 ' + meta.advice;
+    hb.className = 'health-box health-' + rv;
+})();
+
+let donutObj = null;
+let barObj = null;
+
+function showStep(n) {
+    [1, 2, 3, 4].forEach(function (i) {
+        document.getElementById('step' + i).classList.add('hidden');
+    });
+
+    document.getElementById('step' + n).classList.remove('hidden');
+
+    if (n === 3) {
+        setTimeout(buildDonut, 80);
+    }
+
+    if (n === 4) {
+        setTimeout(buildBar, 80);
+    }
+}
+
+function goHome() {
+    window.location.href = '/';
+}
+
+function buildDonut() {
+    if (donutObj) {
+        donutObj.destroy();
+        donutObj = null;
+    }
+
+    const conf = Math.max(0, Math.min(1, PD.confidence));
+    const ctx = document.getElementById('donutChart').getContext('2d');
+
+    donutObj = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Confidence', 'Uncertainty'],
+            datasets: [{
+                data: [conf, 1 - conf],
+                backgroundColor: ['rgba(102,126,234,.85)', 'rgba(220,220,220,.55)'],
+                borderColor: ['rgba(102,126,234,1)', 'rgba(200,200,200,1)'],
+                borderWidth: 3,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '68%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        font: {
+                            size: 14,
+                            weight: '600'
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return context.label + ': ' + (context.parsed * 100).toFixed(2) + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function buildBar() {
+    if (barObj) {
+        barObj.destroy();
+        barObj = null;
+    }
+
+    const ctx = document.getElementById('barChart').getContext('2d');
+    const labels = MODEL_ORDER;
+    const values = MODEL_ORDER.map(function (m) {
+        return PD.allModels[m] || 0;
+    });
+    const selectedModel = PD.model;
+
+    barObj = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Accuracy',
+                data: values,
+                backgroundColor: labels.map(function (m) {
+                    return m === selectedModel
+                        ? 'rgba(102,126,234,.9)'
+                        : (MODEL_COLORS[m] ? MODEL_COLORS[m].bar : 'rgba(200,200,200,.7)');
+                }),
+                borderColor: labels.map(function (m) {
+                    return m === selectedModel
+                        ? 'rgba(102,126,234,1)'
+                        : (MODEL_COLORS[m] ? MODEL_COLORS[m].border : 'rgba(180,180,180,1)');
+                }),
+                borderWidth: 2,
+                borderRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1,
+                    ticks: {
+                        callback: function (v) {
+                            return (v * 100).toFixed(0) + '%';
+                        },
+                        font: {
+                            size: 12
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,.06)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: {
+                            size: 13,
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return 'Accuracy: ' + (context.parsed.y * 100).toFixed(2) + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    buildRankings();
+}
+
+function buildRankings() {
+    const body = document.getElementById('rankingsBody');
+    body.innerHTML = '';
+
+    const entries = MODEL_ORDER.map(function (m) {
+        return {
+            name: m,
+            acc: PD.allModels[m] || 0
+        };
+    }).sort(function (a, b) {
+        return b.acc - a.acc;
+    });
+
+    const bestName = entries.length ? entries[0].name : '';
+
+    entries.forEach(function (entry, index) {
+        const isBest = entry.name === bestName;
+        const isSelected = entry.name === PD.model;
+
+        const row = document.createElement('div');
+        row.className = 'rank-row' + (isBest ? ' best' : '') + (isSelected ? ' selected' : '');
+
+        row.innerHTML =
+            '<div class="rank-name">'
+            + '<span style="color:#aaa;margin-right:6px;">' + (index + 1) + '.</span>'
+            + entry.name
+            + (isSelected ? '<span class="pill pill-sel">SELECTED</span>' : '')
+            + (isBest ? '<span class="pill pill-best">🏆 BEST</span>' : '')
+            + '</div>'
+            + '<div class="rank-acc">' + (entry.acc * 100).toFixed(2) + '%</div>';
+
+        body.appendChild(row);
+    });
+}
+</script>
+</body>
+</html>

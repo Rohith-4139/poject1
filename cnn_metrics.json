@@ -1,0 +1,30 @@
+{
+  "accuracy": 0.9773,
+  "confusion_matrix": [
+    [
+      7,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      4,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      15,
+      1
+    ],
+    [
+      0,
+      0,
+      0,
+      17
+    ]
+  ],
+  "note": "placeholder \u2014 add cnn_metrics.json with real values"
+}

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Visualizations | Hypertension Classifier</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1129 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 24px;
+        }
+
+        .outer {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Nav */
+        .top-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            margin-bottom: 2rem;
+        }
+
+        .nav-pill {
+            color: rgba(255,255,255,.8);
+            text-decoration: none;
+            padding: .45rem 1rem;
+            border-radius: 8px;
+            font-size: .9rem;
+            transition: all .2s;
+        }
+
+        .nav-pill:hover,
+        .nav-pill.active {
+            color: #fff;
+            background: rgba(255,255,255,.12);
+        }
+
+        h1 {
+            color: #fff;
+            font-weight: 700;
+            margin-bottom: .4rem;
+        }
+
+        .sub {
+            color: rgba(255,255,255,.65);
+            margin-bottom: 2rem;
+            font-size: .97rem;
+        }
+
+        /* Cards */
+        .viz-card {
+            background: rgba(255,255,255,.08);
+            border-radius: 18px;
+            padding: 1.6rem;
+            border: 1px solid rgba(255,255,255,.1);
+            margin-bottom: 2rem;
+        }
+
+        .viz-card h3 {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Accuracy chart */
+        .acc-wrap {
+            max-width: 580px;
+            margin: 0 auto;
+        }
+
+        /* Confusion matrix table */
+        .cm-wrap {
+            overflow-x: auto;
+            margin-top: .5rem;
+        }
+
+        .cm-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .93rem;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .cm-tbl th,
+        .cm-tbl td {
+            padding: 9px 11px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,.06);
+        }
+
+        .cm-tbl th {
+            background: rgba(45,53,97,.65);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .cm-tbl td {
+            font-weight: 700;
+            color: #fff;
+            min-width: 42px;
+            background-color: rgba(102,126,234,.12); /* default */
+        }
+
+        .cm-legend {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 9px;
+            font-size: .82rem;
+            color: rgba(255,255,255,.7);
+        }
+
+        .cm-legend span {
+            display: inline-block;
+            width: 20px;
+            height: 13px;
+            border-radius: 3px;
+        }
+
+        /* Model badge chips */
+        .chip {
+            display: inline-block;
+            padding: 3px 11px;
+            border-radius: 20px;
+            font-size: .76rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .chip-cnn {
+            background: rgba(230,126,34,.85);
+            color: #fff;
+        }
+
+        .chip-xgboost {
+            background: rgba(56,161,105,.85);
+            color: #fff;
+        }
+
+        .chip-svm {
+            background: rgba(118,75,162,.85);
+            color: #fff;
+        }
+
+        .chip-knn {
+            background: rgba(102,126,234,.85);
+            color: #fff;
+        }
+
+        /* Not-trained notice */
+        .warn-box {
+            background: rgba(220,53,69,.18);
+            border: 1px solid rgba(220,53,69,.4);
+            color: #f8d7da;
+            border-radius: 12px;
+            padding: .9rem 1rem;
+            margin-bottom: 1.75rem;
+            font-size: .93rem;
+        }
+
+        /* Bottom nav */
+        .btn-nav {
+            background: rgba(102,126,234,.28);
+            border: 1px solid rgba(102,126,234,.45);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            margin: .3rem;
+            display: inline-block;
+            transition: all .25s;
+        }
+
+        .btn-nav:hover {
+            background: rgba(102,126,234,.55);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+<div class="outer">
+
+    <nav class="top-nav">
+        <a href="/" class="nav-pill">🏠 Home</a>
+        <a href="/upload" class="nav-pill">📤 Upload Image</a>
+        <a href="/predict-data" class="nav-pill">🧬 Predict with Data</a>
+        <a href="/visualize" class="nav-pill active">📊 Visualize Models</a>
+    </nav>
+
+    <h1>📊 Model Results &amp; Confusion Matrices</h1>
+    <p class="sub">Accuracy comparison and confusion matrices for CNN, XGBoost, SVM and KNN.</p>
+
+    {% if not trained %}
+    <div class="warn-box">
+        <strong>⚠️ No trained models found.</strong>
+        Run <code>python train_models.py</code> in the backend folder, then refresh.
+        The accuracy chart below uses default reference values.
+    </div>
+    {% endif %}
+
+    <!-- Hidden config holder -->
+    <div id="page-config"
+         data-accuracies='{{ accuracies | tojson | safe }}'
+         data-model-keys='{{ model_keys | tojson | safe }}'>
+    </div>
+
+    <!-- Accuracy bar chart -->
+    <div class="viz-card">
+        <h3>📈 Model Accuracy Comparison</h3>
+        <div class="acc-wrap">
+            <canvas id="accChart" height="220"></canvas>
+        </div>
+    </div>
+
+    <!-- Confusion matrices grid -->
+    <div class="row">
+        {% for key in model_keys %}
+        <div class="col-md-6 mb-4">
+            <div class="viz-card">
+                <h3>
+                    {{ key.upper() }} Confusion Matrix
+                    <span class="chip chip-{{ key }}">{{ key.upper() }}</span>
+                </h3>
+
+                {% if confusion_matrices and confusion_matrices.get(key) and cm_labels %}
+                    {% set cm = confusion_matrices[key] %}
+                    {% set mx = cm_max.get(key, 1) %}
+                    <div class="cm-wrap">
+                        <table class="cm-tbl">
+                            <thead>
+                                <tr>
+                                    <th style="width:80px;">True \ Pred</th>
+                                    {% for l in cm_labels %}
+                                    <th>{{ l }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in cm %}
+                                <tr>
+                                    <th>
+                                        {{ cm_labels[loop.index0] if loop.index0 < cm_labels|length else loop.index0 }}
+                                    </th>
+                                    {% for v in row %}
+                                    {% set ratio = (v / mx) if mx > 0 else 0 %}
+                                    <td class="cm-cell" data-alpha="{{ '%.2f'|format(0.12 + ratio * 0.88) }}">
+                                        {{ v }}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="cm-legend">
+                        <span style="background:rgba(102,126,234,.15);"></span> Low
+                        <span style="background:rgba(102,126,234,1.00);"></span> High
+                    </div>
+                {% else %}
+                    <p style="color:rgba(255,255,255,.45);margin:0;font-size:.9rem;">
+                        No data — run <code>python train_models.py</code> to generate.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="text-center mt-1 mb-4">
+        <a href="/upload" class="btn-nav">← Upload New Image</a>
+        <a href="/predict-data" class="btn-nav">Predict with Data →</a>
+    </div>
+
+</div>
+
+<script>
+const pageConfigEl = document.getElementById('page-config');
+
+let rawAcc = {};
+let modelKeys = [];
+
+try {
+    rawAcc = JSON.parse(pageConfigEl.dataset.accuracies || '{}');
+} catch (e) {
+    console.warn('Could not parse accuracies.', e);
+    rawAcc = {};
+}
+
+try {
+    modelKeys = JSON.parse(pageConfigEl.dataset.modelKeys || '[]');
+} catch (e) {
+    console.warn('Could not parse model keys.', e);
+    modelKeys = [];
+}
+
+/* Apply confusion matrix cell colors safely after render */
+document.querySelectorAll('.cm-cell').forEach(function (cell) {
+    const alpha = parseFloat(cell.dataset.alpha || '0.12');
+    cell.style.backgroundColor = 'rgba(102,126,234,' + alpha + ')';
+});
+
+const ORDER = ['cnn', 'xgboost', 'svm', 'knn'];
+
+const LABELS = {
+    cnn: 'CNN',
+    xgboost: 'XGBoost',
+    svm: 'SVM',
+    knn: 'KNN'
+};
+
+const COLORS = {
+    cnn: {
+        bar: 'rgba(230,126,34,.85)',
+        border: 'rgb(230,126,34)'
+    },
+    xgboost: {
+        bar: 'rgba(56,161,105,.85)',
+        border: 'rgb(56,161,105)'
+    },
+    svm: {
+        bar: 'rgba(118,75,162,.85)',
+        border: 'rgb(118,75,162)'
+    },
+    knn: {
+        bar: 'rgba(102,126,234,.85)',
+        border: 'rgb(102,126,234)'
+    }
+};
+
+const chartLabels = [];
+const chartData = [];
+const chartBgColors = [];
+const chartBorderColors = [];
+
+ORDER.forEach(function (key) {
+    if (!Array.isArray(modelKeys) || modelKeys.indexOf(key) === -1) {
+        return;
+    }
+
+    chartLabels.push(LABELS[key] || key.toUpperCase());
+    chartData.push(typeof rawAcc[key] === 'number' ? rawAcc[key] : 0);
+    chartBgColors.push(COLORS[key] ? COLORS[key].bar : 'rgba(150,150,150,.7)');
+    chartBorderColors.push(COLORS[key] ? COLORS[key].border : 'rgb(150,150,150)');
+});
+
+const accCanvas = document.getElementById('accChart');
+
+if (accCanvas && chartData.length > 0) {
+    new Chart(accCanvas, {
+        type: 'bar',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: 'Accuracy',
+                data: chartData,
+                backgroundColor: chartBgColors,
+                borderColor: chartBorderColors,
+                borderWidth: 2,
+                borderRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return 'Accuracy: ' + (context.parsed.y * 100).toFixed(2) + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1,
+                    ticks: {
+                        color: '#e0e0e0',
+                        callback: function (value) {
+                            return (value * 100).toFixed(0) + '%';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255,255,255,.07)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#e0e0e0',
+                        font: {
+                            size: 13,
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predict with Health Data | Hypertension Classifier</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1129 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 24px;
+            color: #e0e0e0;
+        }
+
+        .outer {
+            max-width: 740px;
+            margin: 0 auto;
+        }
+
+        /* Nav */
+        .top-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .nav-pill {
+            color: rgba(255,255,255,.8);
+            text-decoration: none;
+            padding: .45rem 1rem;
+            border-radius: 8px;
+            font-size: .9rem;
+            transition: all .2s;
+        }
+
+        .nav-pill:hover {
+            color: #fff;
+            background: rgba(255,255,255,.1);
+        }
+
+        /* Card */
+        .card {
+            background: rgba(255,255,255,.08);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,.1);
+        }
+
+        .card h1 {
+            color: #fff;
+            font-weight: 700;
+            margin-bottom: .4rem;
+            font-size: 1.75rem;
+        }
+
+        .sub {
+            color: rgba(255,255,255,.65);
+            margin-bottom: 1.75rem;
+            font-size: .97rem;
+        }
+
+        /* Inputs */
+        .form-label {
+            color: rgba(255,255,255,.9);
+            font-weight: 600;
+            font-size: .9rem;
+        }
+
+        .form-control,
+        .form-select {
+            background: rgba(255,255,255,.1);
+            border: 1px solid rgba(255,255,255,.2);
+            color: #fff;
+            border-radius: 9px;
+        }
+
+        .form-control::placeholder {
+            color: rgba(255,255,255,.35);
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: rgba(255,255,255,.14);
+            border-color: #667eea;
+            color: #fff;
+            box-shadow: 0 0 0 3px rgba(102,126,234,.22);
+        }
+
+        .form-select option {
+            background: #1a1f3a;
+            color: #fff;
+        }
+
+        /* Model selector panel */
+        .model-panel {
+            background: rgba(102,126,234,.14);
+            border: 1px solid rgba(102,126,234,.3);
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .model-panel label {
+            color: #a78bfa;
+            font-weight: 700;
+            font-size: .95rem;
+            display: block;
+            margin-bottom: .5rem;
+        }
+
+        /* Not-trained alert */
+        .alert-warn {
+            background: rgba(220,53,69,.18);
+            border: 1px solid rgba(220,53,69,.4);
+            color: #f8d7da;
+            border-radius: 12px;
+            padding: .85rem 1rem;
+            margin-bottom: 1.5rem;
+            font-size: .93rem;
+        }
+
+        /* Submit */
+        .btn-predict {
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            border: none;
+            padding: 13px 42px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            border-radius: 50px;
+            color: #fff;
+            transition: all .25s;
+        }
+
+        .btn-predict:hover:not(:disabled) {
+            opacity: .93;
+            transform: translateY(-2px);
+            color: #fff;
+        }
+
+        .btn-predict:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+
+        /* Result box */
+        .result-box {
+            background: rgba(102,126,234,.18);
+            border: 1px solid rgba(102,126,234,.32);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            display: none;
+            animation: fadeUp .4s ease;
+        }
+
+        .result-box.show {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-box h5 {
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+
+        /* Single result card */
+        .single-card {
+            background: rgba(255,255,255,.07);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .single-card .model-tag {
+            font-size: .8rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: rgba(255,255,255,.5);
+            margin-bottom: .4rem;
+        }
+
+        .conf-bar-bg {
+            background: rgba(255,255,255,.12);
+            border-radius: 50px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: .65rem;
+        }
+
+        .conf-bar-fill {
+            height: 100%;
+            border-radius: 50px;
+            background: linear-gradient(90deg,#667eea,#764ba2);
+            transition: width .55s ease;
+        }
+
+        /* Multi-model rows */
+        .model-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: .7rem 0;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+        }
+
+        .model-row:last-child {
+            border-bottom: none;
+        }
+
+        .model-row .mname {
+            font-weight: 600;
+            color: rgba(255,255,255,.85);
+        }
+
+        .badge {
+            padding: 5px 14px;
+            border-radius: 50px;
+            font-size: .85rem;
+            font-weight: 700;
+        }
+
+        .badge-nt  { background: #28a745; color: #fff; }
+        .badge-pt  { background: #ffc107; color: #111; }
+        .badge-ht1 { background: #fd7e14; color: #fff; }
+        .badge-ht2 { background: #dc3545; color: #fff; }
+
+        .btn-graphs {
+            background: linear-gradient(135deg,#11998e,#38ef7d);
+            border: none;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 50px;
+            color: #0a0e27;
+            text-decoration: none;
+            display: inline-block;
+            transition: all .25s;
+        }
+
+        .btn-graphs:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(56,239,125,.38);
+            color: #0a0e27;
+        }
+    </style>
+</head>
+<body>
+<div class="outer">
+
+    <nav class="top-nav">
+        <a href="/" class="nav-pill"><i class='bx bx-home'></i> Home</a>
+        <a href="/upload" class="nav-pill"><i class='bx bx-upload'></i> Upload Image</a>
+        <a href="/predict-data" class="nav-pill"><i class='bx bx-dna'></i> Predict with Data</a>
+        <a href="/visualize" class="nav-pill"><i class='bx bx-line-chart'></i> Visualize Models</a>
+    </nav>
+
+    <div class="card">
+        <h1><i class='bx bx-dna'></i> Predict with Health Data</h1>
+        <p class="sub">Enter health metrics and select a model to get your hypertension prediction.</p>
+
+        {% if not trained %}
+        <div class="alert-warn">
+            <strong>⚠️ Models not trained.</strong>
+            Run <code>python train_models.py</code> in the backend folder, then refresh.
+            Predictions will use demo values until trained.
+        </div>
+        {% endif %}
+
+        <!-- Hidden config holder (avoids Jinja inside JS parser issues) -->
+        <div id="page-config"
+             data-feature-names='{{ feature_names | tojson | safe }}'></div>
+
+        <form id="predictForm" novalidate>
+            <!-- Model selector -->
+            <div class="model-panel">
+                <label for="modelSelect"><i class='bx bx-chip'></i> Classification Model</label>
+                <select class="form-select form-select-lg" id="modelSelect" name="model">
+                    <option value="all">🔀 All Models (KNN + SVM + XGBoost)</option>
+                    <option value="knn">📍 KNN — K-Nearest Neighbors</option>
+                    <option value="svm">📐 SVM — Support Vector Machine</option>
+                    <option value="xgboost">🌲 XGBoost — Gradient Boosting</option>
+                </select>
+                <div style="font-size:.82rem;color:rgba(255,255,255,.4);margin-top:.5rem;">
+                    CNN is image-only and not available for tabular data input.
+                </div>
+            </div>
+
+            <!-- Feature inputs -->
+            <div class="row g-3">
+                {% for name in feature_names %}
+                <div class="col-md-6">
+                    <label class="form-label">{{ name }}</label>
+                    <input
+                        type="number"
+                        step="any"
+                        class="form-control form-control-lg"
+                        name="{{ name }}"
+                        id="feat_{{ loop.index0 }}"
+                        placeholder="{% if 'Num' in name or 'subject' in name %}0{% else %}e.g. 45{% endif %}"
+                        value="{% if 'Num' in name or 'subject' in name %}0{% endif %}"
+                    >
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-predict" id="submitBtn">
+                    <i class='bx bx-calculator'></i> Get Prediction
+                </button>
+            </div>
+        </form>
+
+        <!-- Result -->
+        <div id="resultBox" class="result-box">
+            <h5><i class='bx bx-line-chart'></i> Prediction Result</h5>
+            <div id="resultContent"></div>
+            <div id="graphsWrap" class="text-center mt-4" style="display:none;">
+                <a href="/visualize" class="btn-graphs">
+                    <i class='bx bx-line-chart'></i> View Accuracy Graphs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const pageConfigEl = document.getElementById('page-config');
+const FEATURE_NAMES = JSON.parse(pageConfigEl.dataset.featureNames || '[]');
+
+const LABEL_DISPLAY = {
+    "nt": "Normal",
+    "pt": "Pre-Hypertension",
+    "ht1": "Hypertension Stage 1",
+    "ht2": "Hypertension Stage 2"
+};
+
+function getFeatures() {
+    return FEATURE_NAMES.map(function (_, i) {
+        const el = document.getElementById('feat_' + i);
+        return (el && el.value !== '') ? parseFloat(el.value) : 0;
+    });
+}
+
+function badgeClass(result) {
+    return 'badge badge-' + (result || 'nt');
+}
+
+function renderSingle(modelName, prediction) {
+    const label = LABEL_DISPLAY[prediction.result] || prediction.result;
+    const conf = prediction.confidence != null ? (prediction.confidence * 100).toFixed(1) : null;
+
+    return '<div class="single-card">'
+        + '<div class="model-tag">' + modelName.toUpperCase() + ' MODEL</div>'
+        + '<div style="font-size:1.4rem;font-weight:800;margin:.3rem 0;">'
+        +   '<span class="' + badgeClass(prediction.result) + '" style="font-size:1rem;padding:8px 22px;">'
+        +       label
+        +   '</span>'
+        + '</div>'
+        + (conf !== null
+            ? '<div style="font-size:.82rem;color:rgba(255,255,255,.55);margin-top:.65rem;">'
+                + 'Confidence <strong style="color:#fff;">' + conf + '%</strong>'
+              + '</div>'
+              + '<div class="conf-bar-bg"><div class="conf-bar-fill" style="width:' + conf + '%;"></div></div>'
+            : '')
+        + '</div>';
+}
+
+function renderMulti(predictions) {
+    let html = '';
+
+    Object.keys(predictions).forEach(function (modelKey) {
+        const prediction = predictions[modelKey];
+        const label = LABEL_DISPLAY[prediction.result] || prediction.result;
+        const conf = prediction.confidence != null
+            ? ' <small style="opacity:.75;">' + (prediction.confidence * 100).toFixed(1) + '%</small>'
+            : '';
+
+        html += '<div class="model-row">'
+            + '<span class="mname">' + modelKey.toUpperCase() + '</span>'
+            + '<span class="' + badgeClass(prediction.result) + '">' + label + conf + '</span>'
+            + '</div>';
+    });
+
+    return html;
+}
+
+document.getElementById('predictForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const btn = document.getElementById('submitBtn');
+    const resultBox = document.getElementById('resultBox');
+    const resultContent = document.getElementById('resultContent');
+    const graphsWrap = document.getElementById('graphsWrap');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Predicting...';
+
+    resultBox.classList.remove('show');
+
+    const features = getFeatures();
+    const selected = document.getElementById('modelSelect').value;
+
+    try {
+        const res = await fetch('/api/predict-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                features: features,
+                model: selected
+            })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+            resultContent.innerHTML =
+                '<p style="color:#f8d7da;">⚠️ ' + (data.error || 'Request failed') + '</p>';
+            graphsWrap.style.display = 'none';
+        } else {
+            const predictions = data.predictions || {};
+            const keys = Object.keys(predictions);
+
+            if (keys.length === 0) {
+                resultContent.innerHTML =
+                    '<p style="color:rgba(255,255,255,.6);">No predictions returned.</p>';
+                graphsWrap.style.display = 'none';
+            } else if (keys.length === 1) {
+                resultContent.innerHTML = renderSingle(keys[0], predictions[keys[0]]);
+                graphsWrap.style.display = 'block';
+            } else {
+                resultContent.innerHTML = renderMulti(predictions);
+                graphsWrap.style.display = 'block';
+            }
+        }
+    } catch (err) {
+        resultContent.innerHTML =
+            '<p style="color:#f8d7da;">⚠️ Network error: ' + err.message + '</p>';
+        graphsWrap.style.display = 'none';
+    }
+
+    resultBox.classList.add('show');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bx bx-calculator"></i> Get Prediction';
+});
+</script>
+</body>
+</html>
