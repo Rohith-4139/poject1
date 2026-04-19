@@ -1,3 +1,2 @@
 
-Web-based hypertension detection using PPG signals with ML/DL models,
-interactive UI, and Power BI analytics.
+Web-based hypertension detection using PPG signals with ML/DL models.
